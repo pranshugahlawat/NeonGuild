@@ -27,19 +27,16 @@ export default function StatsCard() {
   }
 
   useEffect(() => {
-    void load();
-    const channel = supabase.channel("stats-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => void load({ silent: true }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "attributes" }, () => void load({ silent: true }))
-      .subscribe();
-    const onRefresh = () => void load({ silent: true });
-    window.addEventListener("neon-guild:stats-refresh", onRefresh);
-    return () => {
-      supabase.removeChannel(channel);
-      window.removeEventListener("neon-guild:stats-refresh", onRefresh);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  void load();
+
+  const onRefresh = () => void load({ silent: true });
+  window.addEventListener("neon-guild:stats-refresh", onRefresh);
+
+  return () => {
+    window.removeEventListener("neon-guild:stats-refresh", onRefresh);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
   if (loading || !profile) return <Card className="min-h-[280px]">Loading character...</Card>;
 
