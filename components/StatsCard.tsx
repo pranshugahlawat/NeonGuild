@@ -1,24 +1,11 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Card } from "@/components/ui/Card";
 import { motion } from "framer-motion";
 
-type Profile = {
-  level: number;
-  xp: number;
-  gold: number;
-  streak_count: number;
-  display_name: string | null;
-};
-
-type Attributes = {
-  strength_xp: number;
-  intellect_xp: number;
-  focus_xp: number;
-  vitality_xp: number;
-};
+type Profile = { level: number; xp: number; gold: number; streak_count: number; display_name: string | null; };
+type Attributes = { strength_xp: number; intellect_xp: number; focus_xp: number; vitality_xp: number; };
 
 function totalXpForLevel(level: number) {
   return Math.floor(75 * Math.pow(level - 1, 2) + 100 * (level - 1));
@@ -41,20 +28,12 @@ export default function StatsCard() {
 
   useEffect(() => {
     void load();
-
-    const channel = supabase
-      .channel("stats-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () =>
-        void load({ silent: true })
-      )
-      .on("postgres_changes", { event: "*", schema: "public", table: "attributes" }, () =>
-        void load({ silent: true })
-      )
+    const channel = supabase.channel("stats-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => void load({ silent: true }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "attributes" }, () => void load({ silent: true }))
       .subscribe();
-
     const onRefresh = () => void load({ silent: true });
     window.addEventListener("neon-guild:stats-refresh", onRefresh);
-
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener("neon-guild:stats-refresh", onRefresh);
@@ -66,9 +45,7 @@ export default function StatsCard() {
 
   const nextLevelXp = totalXpForLevel(profile.level + 1);
   const currLevelXp = totalXpForLevel(profile.level);
-  const intoLevel = Math.max(0, profile.xp - currLevelXp);
-  const needed = Math.max(1, nextLevelXp - currLevelXp);
-  const pct = Math.min(100, Math.round((intoLevel / needed) * 100));
+  const pct = Math.min(100, Math.round(((profile.xp - currLevelXp) / Math.max(1, nextLevelXp - currLevelXp)) * 100));
 
   return (
     <Card>
@@ -84,23 +61,16 @@ export default function StatsCard() {
           <div className="font-semibold">{profile.streak_count} day(s)</div>
         </div>
       </div>
-
       <div className="mt-5">
         <div className="flex items-center justify-between text-sm">
           <div className="text-mut">Level</div>
           <div className="font-semibold">Lv. {profile.level}</div>
         </div>
         <div className="mt-2 h-3 w-full rounded-full bg-[rgba(255,255,255,0.10)]">
-          <motion.div
-            className="h-3 rounded-full bg-neon2"
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
-            transition={{ type: "spring", stiffness: 120, damping: 18 }}
-          />
+          <motion.div className="h-3 rounded-full bg-neon2" initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ type: "spring", stiffness: 120, damping: 18 }} />
         </div>
         <div className="mt-2 text-xs text-mut">XP: {profile.xp} (next at {nextLevelXp})</div>
       </div>
-
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-panel2 p-3">
           <div className="text-xs text-mut">Gold</div>
@@ -109,8 +79,7 @@ export default function StatsCard() {
         <div className="rounded-xl bg-panel2 p-3">
           <div className="text-xs text-mut">Attributes</div>
           <div className="text-xs text-mut mt-1">
-            STR {attr?.strength_xp ?? 0} · INT {attr?.intellect_xp ?? 0}
-            <br />
+            STR {attr?.strength_xp ?? 0} · INT {attr?.intellect_xp ?? 0}<br />
             FOC {attr?.focus_xp ?? 0} · VIT {attr?.vitality_xp ?? 0}
           </div>
         </div>

@@ -112,18 +112,11 @@ export default function QuestList({ mode }: { mode: "today" | "all" | "recent" }
   }
 
   useEffect(() => {
-    void load();
-
-    // Realtime = no polling needed. Silent refresh only (no flicker).
-    const channel = supabase
-      .channel(`questlist-${mode}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "quests" }, () =>
-        void load({ silent: true })
-      )
-      .on("postgres_changes", { event: "*", schema: "public", table: "quest_completions" }, () =>
-        void load({ silent: true })
-      )
-      .subscribe();
+  void load();
+  const channel = supabase.channel(`questlist-${mode}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "quests" }, () => void load({ silent: true }))
+    .on("postgres_changes", { event: "*", schema: "public", table: "quest_completions" }, () => void load({ silent: true }))
+    .subscribe();
 
     const onExternal = () => void load({ silent: true });
     window.addEventListener("neon-guild:quests-refresh", onExternal);
