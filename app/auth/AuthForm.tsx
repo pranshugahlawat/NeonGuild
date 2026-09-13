@@ -1,23 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 type Mode = "login" | "signup";
 
-export default function AuthForm() {
+export default function AuthForm({ nextPath }: { nextPath: string }) {
   const supabase = useMemo(() => createClient(), []);
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "error" | "ok">("idle");
-  const [message, setMessage] = useState("");
 
-  const search = useSearchParams();
-  const nextPath = search.get("next") ?? "/app";
+  const [status, setStatus] = useState<"idle" | "loading" | "error" | "ok">("idle");
+  const [message, setMessage] = useState<string>("");
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,7 +39,8 @@ export default function AuthForm() {
 
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      window.location.href = nextPath;
+
+      window.location.href = nextPath || "/app";
     } catch (err: any) {
       setStatus("error");
       setMessage(err?.message ?? "Something went wrong.");

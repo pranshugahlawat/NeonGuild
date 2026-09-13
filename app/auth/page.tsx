@@ -1,6 +1,14 @@
 import AuthForm from "./AuthForm";
 
-export default function AuthPage() {
+export const dynamic = "force-dynamic";
+
+export default function AuthPage({
+  searchParams
+}: {
+  searchParams: { next?: string };
+}) {
+  const nextPath = searchParams?.next ?? "/app";
+
   return (
     <main className="min-h-screen px-5 py-10">
       <div className="mx-auto max-w-md">
@@ -11,8 +19,9 @@ export default function AuthPage() {
             </div>
             <div className="mt-1 text-sm text-mut">Login or create your character.</div>
           </div>
+
           <div className="mt-6">
-            <AuthForm />
+            <AuthForm nextPath={nextPath} />
           </div>
         </div>
       </div>
