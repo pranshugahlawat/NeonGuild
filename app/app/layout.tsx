@@ -1,10 +1,12 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Nav from "@/components/Nav";
+import { Analytics } from "@vercel/analytics/next"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
+
   if (!data.user) redirect("/auth");
 
   return (
@@ -13,6 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Nav />
         <div className="mt-6">{children}</div>
       </div>
+      <Analytics/>
     </div>
   );
 }

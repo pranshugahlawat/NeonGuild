@@ -1,19 +1,30 @@
-import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
-import Nav from "@/components/Nav";
+import type { Metadata } from "next";
+import { Inter, Orbitron } from "next/font/google";
+import "./globals.css";
+import Footer from "@/components/Footer";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const orbitron = Orbitron({ subsets: ["latin"], variable: "--font-orbitron" });
 
-  if (!data.user) redirect("/auth");
+export const metadata: Metadata = {
+  title: "Neon Guild — Life RPG",
+  description: "Turn real-life tasks into quests, XP, streaks, and loot.",
+  openGraph: {
+    title: "Neon Guild — Life RPG",
+    description: "Gamified productivity with secure server-side progression.",
+    type: "website"
+  }
+};
 
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <Nav />
-        <div className="mt-6">{children}</div>
-      </div>
-    </div>
+    <html lang="en" className={`${inter.variable} ${orbitron.variable}`}>
+      <body>
+        <div className="min-h-screen flex flex-col">
+          <div className="flex-1">{children}</div>
+          <Footer />
+        </div>
+      </body>
+    </html>
   );
 }
