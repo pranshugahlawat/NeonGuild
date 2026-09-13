@@ -3,9 +3,9 @@
 Neon Guild is a full-stack Life RPG web app that turns real-world tasks into Quests and Daily Habits with XP, leveling, streaks, attributes, and a gold economy.
 
 ## Live Links
-- Live App: (paste your Vercel URL)
-- Demo Video (90–180s): (paste link)
-- GitHub Repo: (paste link)
+- Live App: (https://neonguild.vercel.app/)
+- Demo Video: (https://youtu.be/ZoS9cRP-XVs)
+- GitHub Repo: (https://github.com/pranshugahlawat/NeonGuild/)
 
 ## Key Features
 - Authentication (Supabase Auth)
