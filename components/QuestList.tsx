@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/Button";
-import LevelUpModal from "@/components/LevelUpModel";
+import LevelUpModal from "@/components/LevelUpModal";
 import confetti from "canvas-confetti";
 import { relTime } from "@/lib/format";
 
@@ -18,13 +18,19 @@ type Quest = {
   created_at: string;
 };
 
-type Completion = {
+type CompletionLegacy = {
   id: string;
   completed_at: string;
   xp_earned: number;
   gold_earned: number;
-  quest_id: string;
+  quest_id: string | null;
   quests: { title: string } | null;
+};
+
+// If you ran the "security hardening" migration, completions will also have quest_title.
+// We keep it optional so the UI works either way.
+type CompletionHardened = CompletionLegacy & {
+  quest_title?: string | null;
 };
 
 function todayUtcKey() {
@@ -33,53 +39,97 @@ function todayUtcKey() {
 
 export default function QuestList({ mode }: { mode: "today" | "all" | "recent" }) {
   const supabase = useMemo(() => createClient(), []);
+
   const [quests, setQuests] = useState<Quest[]>([]);
-  const [recent, setRecent] = useState<Completion[]>([]);
+  const [recent, setRecent] = useState<CompletionHardened[]>([]);
   const [completedToday, setCompletedToday] = useState<Set<string>>(new Set());
+
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const [levelUpOpen, setLevelUpOpen] = useState(false);
   const [newLevel, setNewLevel] = useState(1);
 
-  async function load() {
-    setLoading(true);
+  async function loadRecent() {
+    // Try hardened schema first (quest_title exists). If it fails, fallback to legacy select.
+    const hardened = await supabase
+      .from("quest_completions")
+      .select("id, quest_id, completed_at, xp_earned, gold_earned, quest_title, quests(title)")
+      .order("completed_at", { ascending: false })
+      .limit(8);
 
-    if (mode === "recent") {
-      const { data } = await supabase
-        .from("quest_completions")
-        .select("id, quest_id, completed_at, xp_earned, gold_earned, quests(title)")
-        .order("completed_at", { ascending: false })
-        .limit(8);
-
-      setRecent((data ?? []) as any);
-      setLoading(false);
+    if (!hardened.error) {
+      setRecent((hardened.data ?? []) as any);
       return;
     }
 
-    const { data: qData } = await supabase
+    const legacy = await supabase
+      .from("quest_completions")
+      .select("id, quest_id, completed_at, xp_earned, gold_earned, quests(title)")
+      .order("completed_at", { ascending: false })
+      .limit(8);
+
+    if (legacy.error) {
+      console.error(legacy.error);
+      setRecent([]);
+      return;
+    }
+
+    setRecent((legacy.data ?? []) as any);
+  }
+
+  async function loadQuestsAndTodayCompletions() {
+    const qRes = await supabase
       .from("quests")
       .select("*")
       .eq("is_archived", false)
       .order("created_at", { ascending: false });
 
-    setQuests((qData ?? []) as any);
+    if (qRes.error) {
+      console.error(qRes.error);
+      setQuests([]);
+    } else {
+      setQuests((qRes.data ?? []) as any);
+    }
 
-    const { data: cData } = await supabase
+    const cRes = await supabase
       .from("quest_completions")
       .select("quest_id, completed_at")
       .order("completed_at", { ascending: false })
       .limit(200);
 
+    if (cRes.error) {
+      console.error(cRes.error);
+      setCompletedToday(new Set());
+      return;
+    }
+
     const key = todayUtcKey();
     const set = new Set<string>();
-    for (const row of cData ?? []) {
-      const rowKey = new Date((row as any).completed_at).toISOString().slice(0, 10);
-      if (rowKey === key) set.add((row as any).quest_id);
-    }
-    setCompletedToday(set);
 
-    setLoading(false);
+    for (const row of cRes.data ?? []) {
+      const questId = (row as any).quest_id as string | null;
+      if (!questId) continue;
+
+      const rowKey = new Date((row as any).completed_at).toISOString().slice(0, 10);
+      if (rowKey === key) set.add(questId);
+    }
+
+    setCompletedToday(set);
+  }
+
+  async function load() {
+    setLoading(true);
+
+    try {
+      if (mode === "recent") {
+        await loadRecent();
+      } else {
+        await loadQuestsAndTodayCompletions();
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -142,15 +192,21 @@ export default function QuestList({ mode }: { mode: "today" | "all" | "recent" }
     return (
       <div className="space-y-2">
         {recent.length === 0 ? <div className="text-sm text-mut">No completions yet.</div> : null}
-        {recent.map((c) => (
-          <div key={c.id} className="rounded-xl bg-panel2 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="font-medium">{c.quests?.title ?? "Quest"}</div>
-              <div className="text-xs text-mut">{relTime(c.completed_at)}</div>
+        {recent.map((c) => {
+          const title = c.quest_title ?? c.quests?.title ?? "Quest";
+
+          return (
+            <div key={c.id} className="rounded-xl bg-panel2 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="font-medium">{title}</div>
+                <div className="text-xs text-mut">{relTime(c.completed_at)}</div>
+              </div>
+              <div className="mt-1 text-xs text-mut">
+                +{c.xp_earned} XP · +{c.gold_earned} Gold
+              </div>
             </div>
-            <div className="mt-1 text-xs text-mut">+{c.xp_earned} XP · +{c.gold_earned} Gold</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   }
