@@ -6,17 +6,17 @@ import { Button } from "@/components/ui/Button";
 export default function LevelUpModal({
   open,
   level,
-  onClose
+  onCloseAction
 }: {
   open: boolean;
   level: number;
-  onClose: () => void;
+  onCloseAction: () => void;
 }) {
   return (
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 grid place-items-center bg-[rgba(0,0,0,0.55)] px-4"
+          className="fixed inset-0 z-[80] grid place-items-center bg-[rgba(0,0,0,0.78)] px-4 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -25,7 +25,7 @@ export default function LevelUpModal({
           aria-label="Level up dialog"
         >
           <motion.div
-            className="w-full max-w-md rounded-2xl bg-panel p-6 shadow-neon2"
+            className="w-full max-w-md rounded-2xl border border-[rgba(37,246,255,0.30)] bg-[#0B1020] p-6 shadow-neon2"
             initial={{ scale: 0.92, y: 10, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.98, y: 6, opacity: 0 }}
@@ -36,9 +36,8 @@ export default function LevelUpModal({
               Lv. {level}
             </div>
             <p className="mt-3 text-sm text-mut">Your guild rank increased. Keep completing quests for loot.</p>
-
             <div className="mt-5 flex justify-end">
-              <Button onClick={onClose}>Continue</Button>
+              <Button onClick={onCloseAction}>Continue</Button>
             </div>
           </motion.div>
         </motion.div>

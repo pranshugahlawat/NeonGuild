@@ -7,6 +7,7 @@ This document discloses all third‑party libraries, frameworks, platforms, and 
 
 ## Backend / Auth / Database
 - Supabase (Auth + Postgres + RPC + RLS) — https://supabase.com/
+- Supabase Storage (image proof uploads)
 
 ## Frontend Framework
 - Next.js (React, App Router) — https://nextjs.org/

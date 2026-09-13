@@ -30,20 +30,35 @@ export default function StatsCard() {
   const [attr, setAttr] = useState<Attributes | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
-    setLoading(true);
+  async function load(opts: { silent?: boolean } = {}) {
+    if (!opts.silent) setLoading(true);
     const { data: p } = await supabase.from("profiles").select("*").single();
     const { data: a } = await supabase.from("attributes").select("*").single();
     setProfile((p as any) ?? null);
     setAttr((a as any) ?? null);
-    setLoading(false);
+    if (!opts.silent) setLoading(false);
   }
 
   useEffect(() => {
-    load();
-    // lightweight polling to avoid requiring realtime setup
-    const t = setInterval(load, 6000);
-    return () => clearInterval(t);
+    void load();
+
+    const channel = supabase
+      .channel("stats-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () =>
+        void load({ silent: true })
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "attributes" }, () =>
+        void load({ silent: true })
+      )
+      .subscribe();
+
+    const onRefresh = () => void load({ silent: true });
+    window.addEventListener("neon-guild:stats-refresh", onRefresh);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener("neon-guild:stats-refresh", onRefresh);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -75,20 +90,15 @@ export default function StatsCard() {
           <div className="text-mut">Level</div>
           <div className="font-semibold">Lv. {profile.level}</div>
         </div>
-
         <div className="mt-2 h-3 w-full rounded-full bg-[rgba(255,255,255,0.10)]">
           <motion.div
             className="h-3 rounded-full bg-neon2"
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
             transition={{ type: "spring", stiffness: 120, damping: 18 }}
-            aria-label={`XP progress ${pct}%`}
           />
         </div>
-
-        <div className="mt-2 text-xs text-mut">
-          XP: {profile.xp} (next at {nextLevelXp})
-        </div>
+        <div className="mt-2 text-xs text-mut">XP: {profile.xp} (next at {nextLevelXp})</div>
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
